@@ -36,7 +36,7 @@
       "Description" : "User Data string",
       "Type" : "String",
       "Default" : ""
-    }
+     }
   },
   "Mappings" : {},
   "Conditions" : {},
@@ -73,7 +73,7 @@
         "ImageId" : { "Ref" : "AMI" },
         "InstanceType" : { "Ref" : "InstanceType" },
         "AvailabilityZone" : "us-west-2a",
-        "UserData" : { "Ref" : "UserData"}
+        "UserData" : { "Ref" : "UserData" }
       }
     },
     "MyEC2Instance2" : {
@@ -85,7 +85,7 @@
         "ImageId" : { "Ref" : "AMI" },
         "InstanceType" : { "Ref" : "InstanceType" },
         "AvailabilityZone" : "us-west-2b",
-        "UserData" : { "Ref" : "UserData"}
+        "UserData" : { "Ref" : "UserData" }
       }
     },
     "InstanceSecurityGroup" : {
@@ -128,6 +128,14 @@
     "ELB" : {
       "Description" : "The DNS Name of the ELB",
       "Value" :  { "Fn::GetAtt" : [ "MyELB", "DNSName" ] }
+    },
+    "MyEC2Instance1" : {
+      "Description" : "Public IP adress of first EC2 instance",
+      "Value" :  { "Fn::GetAtt" : [ "MyEC2Instance1", "PublicDnsName" ] }
+    },
+    "MyEC2Instance2" : {
+      "Description" : "Public IP adress of first EC2 instance",
+      "Value" :  { "Fn::GetAtt" : [ "MyEC2Instance2", "PublicDnsName" ] }
     }
   }
 }
