@@ -1,0 +1,133 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Description" : "Template for Bash Task 01: ELB with 2 ec2 instances with Tomcat",
+  "Metadata" : {},
+  "Parameters" : {
+    "InstanceType" : {
+      "Description" : "EC2 instance type",
+      "Type" : "String",
+      "Default" : "t2.micro",
+      "AllowedValues" : [ "t2.micro", "t2.nano" ]
+    },
+    "AMI" : {
+      "Description" : "Image ID for base EC2 instance",
+      "Type" : "AWS::EC2::Image::Id",
+      "Default" : "ami-efd0428f"
+    },
+    "KeyName" : {
+      "Description" : "The EC2 Key Pair to allow SSH access to the instance",
+      "Type" : "AWS::EC2::KeyPair::KeyName"
+    },
+    "myVPC" : {
+      "Description" : "Select your VPC ID",
+      "Type": "AWS::EC2::VPC::Id"
+    },
+    "SubnetID" : {
+      "Type":"List<AWS::EC2::Subnet::Id>",
+      "Description":"Select at two subnets in your selected VPC."
+    },
+    "InstanceServicePort" : {
+      "Description" : "EC2 Instance Port where application is running",
+      "Type" : "String",
+      "Default" : "80",
+      "AllowedValues" : [ "80", "443", "8080" ]
+    },
+    "UserData" : {
+      "Description" : "User Data string",
+      "Type" : "String",
+      "Default" : ""
+    }
+  },
+  "Mappings" : {},
+  "Conditions" : {},
+  "Resources" : {
+    "MyELB" : {
+      "Type" : "AWS::ElasticLoadBalancing::LoadBalancer",
+      "DependsOn" : [ "MyEC2Instance1", "MyEC2Instance2" ],
+      "Properties" : {
+        "AvailabilityZones" : { "Fn::GetAZs" : "" },
+        "SecurityGroups" : [ { "Fn::GetAtt" : [ "ELBSecurityGroup", "GroupId" ] } ],
+        "CrossZone" : "true",
+        "Scheme" : "internet-facing",
+        "Instances" : [ { "Ref" : "MyEC2Instance1" }, { "Ref" : "MyEC2Instance2" } ],
+        "Listeners" : [ {
+          "LoadBalancerPort" : "80",
+          "InstancePort" : { "Ref" : "InstanceServicePort" },
+          "Protocol" : "HTTP"
+        } ],
+        "HealthCheck" : {
+          "Target" : { "Fn::Join" : [ "", ["HTTP:", { "Ref" : "InstanceServicePort" }, "/"]]},
+          "HealthyThreshold" : "3",
+          "UnhealthyThreshold" : "5",
+          "Interval" : "30",
+          "Timeout" : "5"
+        }
+      }
+    },
+    "MyEC2Instance1" : {
+      "Type" : "AWS::EC2::Instance",
+      "DependsOn" : [ "InstanceSecurityGroup" ],
+      "Properties" : {
+        "SecurityGroups" : [ { "Ref" : "InstanceSecurityGroup" } ],
+        "KeyName" : { "Ref" : "KeyName" },
+        "ImageId" : { "Ref" : "AMI" },
+        "InstanceType" : { "Ref" : "InstanceType" },
+        "AvailabilityZone" : "us-west-2a",
+        "UserData" : { "Ref" : "UserData"}
+      }
+    },
+    "MyEC2Instance2" : {
+      "Type" : "AWS::EC2::Instance",
+      "DependsOn" : [ "InstanceSecurityGroup" ],
+      "Properties" : {
+        "SecurityGroups" : [ { "Ref" : "InstanceSecurityGroup" } ],
+        "KeyName" : { "Ref" : "KeyName" },
+        "ImageId" : { "Ref" : "AMI" },
+        "InstanceType" : { "Ref" : "InstanceType" },
+        "AvailabilityZone" : "us-west-2b",
+        "UserData" : { "Ref" : "UserData"}
+      }
+    },
+    "InstanceSecurityGroup" : {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Properties" : {
+        "GroupDescription" : "Enable SSH access and Servie Port",
+        "SecurityGroupIngress" : [
+          {
+          "IpProtocol" : "tcp",
+          "FromPort" : "22",
+          "ToPort" : "22",
+          "CidrIp" : "0.0.0.0/0"
+          },
+          {
+          "IpProtocol" : "tcp",
+          "FromPort" : { "Ref" : "InstanceServicePort" },
+          "ToPort" : { "Ref" : "InstanceServicePort" },
+          "CidrIp" : "0.0.0.0/0"
+          }
+        ]
+      }
+    },
+    "ELBSecurityGroup" : {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Properties" : {
+        "GroupDescription" : "Enable Service Port for Tomcat",
+        "SecurityGroupIngress" : [
+          {
+          "IpProtocol" : "tcp",
+          "FromPort" : "80",
+          "ToPort" : "80",
+          "CidrIp" : "0.0.0.0/0"
+          }
+        ]
+      }
+    }
+
+  },
+  "Outputs" : {
+    "ELB" : {
+      "Description" : "The DNS Name of the ELB",
+      "Value" :  { "Fn::GetAtt" : [ "MyELB", "DNSName" ] }
+    }
+  }
+}
